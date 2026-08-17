@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft, ArrowUpRight, Bell, BriefcaseBusiness, Check, ChevronDown,
   CircleDollarSign, Edit3, GraduationCap, LayoutDashboard, Plus, Search,
@@ -110,7 +110,60 @@ function Students({students,query,setQuery,statusFilter,setStatusFilter,onAdd,on
 function AuditPanel({audit}:{audit:Audit[]}){return <aside className="card audit"><div className="card-head"><div><p className="kicker">AUDIT TRAIL</p><h3>Every change, recorded.</h3></div><ClipboardList size={19}/></div><div className="audit-list">{audit.slice(0,12).map(a=><div className="audit-item" key={a.id}><span className="audit-dot"/><div><b>{a.action}</b><strong>{a.student}</strong><small>{a.detail}</small><time>{a.time}</time></div></div>)}</div></aside>}
 function StudentDetails({student,onBack,onEdit,onDelete}:{student?:Student;onBack:()=>void;onEdit:()=>void;onDelete:()=>void}){if(!student)return <div className="page-shell"><button className="back-btn" onClick={onBack}><ArrowLeft size={16}/> Back</button><div className="empty">Student not found.</div></div>; return <div className="page-shell"><button className="back-btn" onClick={onBack}><ArrowLeft size={16}/> Students</button><div className="detail-head"><div><p className="kicker">STUDENT PROFILE / {student.id}</p><h1>{student.name}</h1><p>{student.course} • Batch {student.year}</p></div><div className="detail-actions"><button className="outline-btn" onClick={onEdit}><Edit3 size={16}/> Edit</button><button className="delete-btn" onClick={onDelete}><Trash2 size={16}/> Delete</button></div></div><div className="detail-grid"><section className="card profile-card"><div className="big-avatar">{initials(student.name)}</div><div className="profile-info"><StatusBadge value={student.status}/><h3>{student.name}</h3><p>{student.email}</p><p>{student.phone}</p></div></section><InfoCard icon={<GraduationCap/>} label="Course" value={student.course}/><InfoCard icon={<BriefcaseBusiness/>} label="Company" value={student.company}/><InfoCard icon={<CalendarDays/>} label="Joined" value={student.joined}/><InfoCard icon={<ClipboardList/>} label="Readiness score" value={`${student.score}%`}/><InfoCard icon={<CircleDollarSign/>} label="Fees" value={`₹${student.feePaid.toLocaleString()} / ₹${student.feeTotal.toLocaleString()}`}/></div><section className="card profile-section"><div className="card-head"><div><p className="kicker">PLACEMENT</p><h3>Current progress</h3></div></div><div className="profile-progress"><div className={`progress-step ${student.status==='Training'||student.status==='Interview'||student.status==='Placed'?'done':''}`}><span>1</span><b>Training</b></div><div className={`progress-step ${student.status==='Interview'||student.status==='Placed'?'done':''}`}><span>2</span><b>Interview</b></div><div className={`progress-step ${student.status==='Placed'?'done':''}`}><span>3</span><b>Placed</b></div></div></section></div>}
 function InfoCard({icon,label,value}:{icon:React.ReactNode;label:string;value:string}){return <div className="card info-card"><span>{icon}</span><small>{label}</small><b>{value}</b></div>}
-function Companies({students,onBack}:{students:Student[];onBack:()=>void}){const grouped=Object.entries(students.reduce((acc:any,s)=>{if(s.company!=='—')acc[s.company]=(acc[s.company]||0)+1;return acc},{})); return <div className="page-shell"><button className="back-btn" onClick={onBack}><ArrowLeft size={16}/> Dashboard</button><PageHead kicker="HIRING NETWORK" title="Companies" desc="A detailed view opened from the dashboard metric — no permanent company tab needed."/><div className="company-list">{grouped.map(([name,count])=><div className="card company-row" key={name}><div className="company-logo">{name[0]}</div><div><h3>{name}</h3><p>{count} student{count>1?'s':''} placed / interviewing</p></div><strong>{count}</strong><ArrowUpRight size={19}/></div>)}{grouped.length===0&&<div className="empty">No company data yet.</div>}</div></div>}
+function Companies({
+  students,
+  onBack,
+}: {
+  students: Student[];
+  onBack: () => void;
+}) {
+  const grouped = Object.entries(
+    students.reduce<Record<string, number>>((acc, student) => {
+      if (student.company !== '—') {
+        acc[student.company] = (acc[student.company] || 0) + 1;
+      }
+      return acc;
+    }, {})
+  );
+
+  return (
+    <div className="page-shell">
+      <button className="back-btn" onClick={onBack}>
+        <ArrowLeft size={16} />
+        Dashboard
+      </button>
+
+      <PageHead
+        kicker="HIRING NETWORK"
+        title="Companies"
+        desc="A detailed view opened from the dashboard metric — no permanent company tab needed."
+      />
+
+      <div className="company-list">
+        {grouped.map(([name, count]) => (
+          <div className="card company-row" key={name}>
+            <div className="company-logo">{name[0]}</div>
+
+            <div>
+              <h3>{name}</h3>
+              <p>
+                {count} student{count > 1 ? 's' : ''} placed / interviewing
+              </p>
+            </div>
+
+            <strong>{count}</strong>
+
+            <ArrowUpRight size={19} />
+          </div>
+        ))}
+
+        {grouped.length === 0 && (
+          <div className="empty">No company data yet.</div>
+        )}
+      </div>
+    </div>
+  );
+}
 function Fees({students,onStudent}:{students:Student[];onStudent:(id:string)=>void}){const paid=students.filter(s=>s.feePaid>=s.feeTotal),pending=students.filter(s=>s.feePaid>0&&s.feePaid<s.feeTotal),unpaid=students.filter(s=>s.feePaid===0);return <div className="page-shell"><PageHead kicker="FEE TRACKER" title="Student fees" desc="See who completed fees, who is pending and who has not paid yet."/><div className="fee-summary"><FeeMetric title="Completed" n={paid.length} cls="done"/><FeeMetric title="Pending" n={pending.length} cls="wait"/><FeeMetric title="Not paid" n={unpaid.length} cls="none"/></div><section className="card fee-table"><table><thead><tr><th>STUDENT</th><th>PAID</th><th>TOTAL</th><th>STATUS</th></tr></thead><tbody>{students.map(s=><tr key={s.id}><td><button className="student-link" onClick={()=>onStudent(s.id)}><span className="avatar">{initials(s.name)}</span><span><b>{s.name}</b><small>{s.course}</small></span></button></td><td>₹{s.feePaid.toLocaleString()}</td><td>₹{s.feeTotal.toLocaleString()}</td><td><span className={`fee-status ${s.feePaid>=s.feeTotal?'paid':s.feePaid?'pending':'unpaid'}`}>{s.feePaid>=s.feeTotal?'Completed':s.feePaid?'Pending':'Not paid'}</span></td></tr>)}</tbody></table></section></div>}
 function FeeMetric({title,n,cls}:{title:string;n:number;cls:string}){return <div className={`fee-metric card ${cls}`}><small>{title}</small><strong>{n}</strong><span>students</span></div>}
 
@@ -122,7 +175,12 @@ function PlacementDesk({students,audit}:{students:Student[];audit:Audit[]}){
  </div>
 }
 function Courses({students,onEnroll}:{students:Student[];onEnroll:(course:string)=>void}){
- const courses=[['Python Full Stack','Python, Django, APIs & React','PY',students.filter(s=>s.course.toLowerCase().includes('python')).length],['Java Full Stack','Java, Spring Boot & web development','JV',students.filter(s=>s.course.toLowerCase().includes('java')).length],['Data Analytics','Excel, SQL, Power BI & analytics','DA',students.filter(s=>s.course.toLowerCase().includes('data')).length],['AI','Python, machine learning & GenAI foundations','AI',students.filter(s=>s.course.toLowerCase().includes('ai')).length]];
+ const courses: Array<[string, string, string, number]> = [
+  ['Python Full Stack', 'Build modern web applications with Python.', 'PY', 12],
+  ['Java Full Stack', 'Build enterprise applications with Java.', 'JV', 8],
+  ['Data Analytics', 'Learn data analysis, visualization and insights.', 'DA', 10],
+  ['AI', 'Explore artificial intelligence and machine learning.', 'AI', 15],
+  ];
  return <div className="page-shell"><PageHead kicker="LEARNING / COURSES" title="Courses" desc="Four career-focused tracks. Students can choose a course and begin their enrollment journey."/><div className="course-grid">{courses.map(([name,desc,mark,count])=><section className="card course-card" key={name}><div className="course-mark">{mark}</div><p className="kicker">UNIQ ACADEMY</p><h3>{name}</h3><p>{desc}</p><div className="course-bottom"><span><b>{count}</b> enrolled</span><button className="black-btn" onClick={()=>onEnroll(name)}>Enroll now <ArrowUpRight size={16}/></button></div></section>)}</div><section className="card enrollment-note"><GraduationCap size={22}/><div><b>Enrollment flow</b><p>Choose a course → submit enrollment → student is added to the selected learning track → placement readiness can be tracked from Students.</p></div></section></div>
 }
 function DataVault({students,audit}:{students:Student[];audit:Audit[]}){return <div className="page-shell"><PageHead kicker="SECURE DATA / DATA VAULT" title="Data Vault" desc="A clean overview of the records maintained by UNIQ. This area is read-only and designed for safe review."/><div className="vault-grid"><VaultCard title="Student records" value={students.length} detail="Profiles, courses, status and fee data"/><VaultCard title="Audit records" value={audit.length} detail="System and student change history"/><VaultCard title="Fee records" value={students.length} detail="Paid, pending and outstanding amounts"/><VaultCard title="Placement records" value={students.filter(s=>s.status==='Placed').length} detail="Students with placement outcomes"/></div><section className="card vault-table"><div className="card-head"><div><p className="kicker">DATA INVENTORY</p><h3>Protected collections</h3></div><span className="secure-pill">LOCAL STORAGE</span></div>{['Students','Audit Trail','Fees','Placement Outcomes'].map(x=><div className="vault-row" key={x}><span className="vault-lock">✓</span><div><b>{x}</b><small>Available in the current UNIQ workspace</small></div><strong>Protected</strong></div>)}</section></div>}
